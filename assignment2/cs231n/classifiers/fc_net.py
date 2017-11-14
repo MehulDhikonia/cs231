@@ -305,7 +305,7 @@ class FullyConnectedNet(object):
                                                        affine_relu_forward(x_reshaped, \
                                                                self.params['W' + idx], \
                                                                self.params['b' + idx])
-                    outcache.append(tmp)
+                    
                     x_reshaped = tmp['out' + idx]
                 else:
                     tmp['out' + idx], tmp['cache' + idx] = \
@@ -315,8 +315,15 @@ class FullyConnectedNet(object):
                                                            self.params['gamma' + idx], \
                                                             self.params['beta' + idx], \
                                                                     self.bn_params[i])
-                    outcache.append(tmp)
+                    
                     x_reshaped = tmp['out' + idx]
+                
+                if self.use_dropout:
+                    x_reshaped, dcache = dropout_forward(x_reshaped, \
+                                                         self.dropout_param)
+                    tmp['dcache' + idx] = dcache
+                outcache.append(tmp)
+                    
             else:
             #Final Layer forward pass (affine - softmax)
                 idx = str(i+1)
@@ -364,6 +371,9 @@ class FullyConnectedNet(object):
                                                    = affine_backward(dscores, cache)
                 grads['W' + str(idx+1)] += self.reg*self.params['W' + str(idx+1)]
             else:
+                if self.use_dropout:
+                    dcache = outcache[-(i+1)]['dcache' + str(idx+1)]
+                    dout = dropout_backward(dout, dcache)
                 if not self.use_batchnorm:
                     dout, grads['W' + str(idx+1)], grads['b' + str(idx+1)] \
                                                  = affine_relu_backward(dout, cache)
